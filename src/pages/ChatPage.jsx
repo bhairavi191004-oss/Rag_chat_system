@@ -1,229 +1,198 @@
 import { useState } from "react";
+import axios from "axios";
 import Navbar from "../components/Navbar";
+import { BASE_URL } from "../config/api";
 
 function ChatPage() {
 
-const [question,setQuestion]=useState("");
-const [messages,setMessages]=useState([]);
-const [loading,setLoading]=useState(false);
+  const [question, setQuestion] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-function sendMessage(){
+  const sendMessage = async () => {
 
-if(!question) return;
+    if (!question.trim()) return;
 
-const userMessage={
-sender:"user",
-text:question
-};
+    const userMessage = {
+      sender: "user",
+      text: question,
+    };
 
-setMessages((prev)=>[
-...prev,
-userMessage
-]);
+    setMessages((prev) => [
+      ...prev,
+      userMessage,
+    ]);
 
-setLoading(true);
+    const currentQuestion = question;
 
-setQuestion("");
+    setQuestion("");
 
-setTimeout(()=>{
+    setLoading(true);
 
-const aiMessage={
+    try {
 
-sender:"ai",
+      const response = await axios.post(
+        `${BASE_URL}/api/query/ask`,
+        {
+          question: currentQuestion,
+        }
+      );
 
-text:"Internet of things",
+      const aiMessage = {
+        sender: "ai",
+        text: response.data.answer,
+        sources: response.data.sources,
+      };
 
-sources:[
-"aliyahfinal.pdf - page 8",
-]
+      setMessages((prev) => [
+        ...prev,
+        aiMessage,
+      ]);
 
-};
+    } catch (error) {
 
-setMessages((prev)=>[
-...prev,
-aiMessage
-]);
+      console.log(error);
 
-setLoading(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "ai",
+          text: "Error getting response from AI",
+        },
+      ]);
 
-},2000);
+    } finally {
 
-}
+      setLoading(false);
 
-return(
+    }
+  };
 
-<div
-className="
-min-h-screen
-bg-[#f7f7f8]
-dark:bg-black
-dark:text-white
-flex flex-col
-transition-all duration-300
-"
->
+  return (
 
-<Navbar/>
+    <div
+      className="
+      min-h-screen
+      bg-[#f7f7f8]
+      dark:bg-black
+      dark:text-white
+      flex flex-col
+      transition-all duration-300
+      "
+    >
 
-<div className="flex-1 overflow-y-auto px-4 py-6">
+      <Navbar />
 
-{messages.length===0 && (
+      <div className="flex-1 overflow-y-auto px-4 py-6">
 
-<div className="h-full flex flex-col justify-center items-center text-center">
+        {messages.length === 0 && (
 
-<div className="text-7xl mb-5">
-🤖
-</div>
+          <div className="h-full flex items-center justify-center">
 
-<h1 className="text-4xl font-bold">
-RAG Chat Assistant
-</h1>
+            <h1 className="text-3xl font-bold text-gray-400">
+              Ask Questions From Uploaded Documents
+            </h1>
 
-<p className="text-gray-500 dark:text-gray-300 mt-3">
+          </div>
 
-Upload a PDF first, then ask questions
+        )}
 
-</p>
+        <div className="max-w-4xl mx-auto space-y-6">
 
-</div>
+          {messages.map((msg, index) => (
 
-)}
+            <div
+              key={index}
+              className={`
+              p-4 rounded-2xl shadow
+              ${msg.sender === "user"
+                  ? "bg-purple-600 text-white ml-auto max-w-xl"
+                  : "bg-white dark:bg-gray-900 max-w-xl"}
+              `}
+            >
 
-<div className="max-w-4xl mx-auto space-y-6">
+              <p>{msg.text}</p>
 
-{messages.map((msg,index)=>(
+              {msg.sources && (
 
-<div
-key={index}
-className={`flex ${
-msg.sender==="user"
-? "justify-end"
-: "justify-start"
-}`}
->
+                <div className="mt-3 text-sm text-gray-500">
 
-<div
-className={`max-w-[70%] p-4 rounded-2xl ${
-msg.sender==="user"
-? "bg-purple-600 text-white"
-: "bg-white dark:bg-gray-900 dark:text-white shadow"
-}`}
->
+                  <p className="font-semibold">
+                    Sources:
+                  </p>
 
-<p>{msg.text}</p>
+                  {[...new Set(msg.sources.map((src) => src.fileName))]
+                    .map((file, i) => (
 
-{msg.sender==="ai" && msg.sources && (
+                      <p key={i}>
+                        📄 {file}
+                      </p>
 
-<div className="mt-4 text-sm text-gray-500 dark:text-gray-300">
+                    ))}
 
-<p className="font-semibold">
-Sources
-</p>
+                </div>
 
-{msg.sources.map((source,i)=>(
+              )}
 
-<p key={i}>
-📄 {source}
-</p>
+            </div>
 
-))}
+          ))}
 
-</div>
+          {loading && (
 
-)}
+            <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow w-fit">
 
-</div>
+              ⏳ Thinking...
 
-</div>
+            </div>
 
-))}
+          )}
 
-{/* Loading */}
+        </div>
 
-{loading && (
+      </div>
 
-<div className="flex justify-start">
+      <div className="p-4 border-t dark:border-gray-800">
 
-<div
-className="
-bg-white
-dark:bg-gray-900
-dark:text-white
-shadow
-p-4
-rounded-2xl
-"
->
+        <div className="max-w-4xl mx-auto flex gap-3">
 
-<p>🔍 Searching document...</p>
+          <input
+            type="text"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Ask something..."
+            className="
+            flex-1
+            p-4
+            rounded-2xl
+            border
+            dark:bg-gray-900
+            "
+          />
 
-<p>🤖 Generating answer...</p>
+          <button
+            onClick={sendMessage}
+            disabled={loading}
+            className="
+            bg-purple-600
+            hover:bg-purple-700
+            text-white
+            px-8
+            rounded-2xl
+            "
+          >
 
-</div>
+            Send
 
-</div>
+          </button>
 
-)}
+        </div>
 
-</div>
+      </div>
 
-</div>
+    </div>
 
-{/* Bottom Input */}
-
-<div
-className="
-bg-white
-dark:bg-gray-950
-border-t
-dark:border-gray-700
-p-4
-"
->
-
-<div className="max-w-4xl mx-auto flex gap-3">
-
-<input
-value={question}
-onChange={(e)=>setQuestion(e.target.value)}
-placeholder="Ask something from uploaded PDF..."
-className="
-flex-1
-border
-dark:border-gray-700
-bg-white
-dark:bg-gray-900
-dark:text-white
-rounded-xl
-p-4
-outline-none
-"
-/>
-
-<button
-onClick={sendMessage}
-disabled={!question}
-className="
-bg-purple-600
-text-white
-px-8
-rounded-xl
-disabled:bg-gray-400
-"
->
-
-Send
-
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-)
-
+  );
 }
 
 export default ChatPage;

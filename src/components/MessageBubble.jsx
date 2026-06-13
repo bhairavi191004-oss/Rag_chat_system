@@ -1,14 +1,17 @@
-function MessageBubble({sender,message}){
+function MessageBubble({ sender, text }) {
 
-return(
-<div className='bg-gray-100 p-3 rounded-xl'>
+  return (
 
-<b>{sender}</b>
+    <div className='bg-gray-100 p-3 rounded-xl'>
 
-<p>{message}</p>
+      <b>{sender}</b>
 
-</div>
-)
+      <p>{text}</p>
+
+    </div>
+
+  )
+
 }
 
 export default MessageBubble
